@@ -13,10 +13,10 @@ from torchmetrics import Accuracy
 
 
 # Configuration
-NUM_CLASSES = 9
+NUM_CLASSES = 4
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 DATA_PATH = Path("./edible_or_not_mushrooms")
-MODEL_SAVE_PATH = "model2.pt"
+MODEL_SAVE_PATH = "mushroom_master.pt"
 ACCURACY_SAVE_PATH = "accuracy.txt"
 BATCH_SIZE = 32
 LEARNING_RATE = 0.001
@@ -70,7 +70,7 @@ def create_model() -> nn.Module:
     return model.to(DEVICE), efficient_net_weights.transforms()
 
 
-def load_data() -> Tuple[List[str], List[str], List[str]]:
+def load_data(only_load_classes: bool = False) -> Tuple[List[str], List[str], List[str]]:
     """Load image paths and labels from the data directory."""
     assert DATA_PATH.is_dir(), f"Data path {DATA_PATH} does not exist"
     
@@ -85,17 +85,18 @@ def load_data() -> Tuple[List[str], List[str], List[str]]:
             
         classes.append(image_folder)
         
-        for image_file in os.listdir(folder_path):
-            full_path = folder_path / image_file
-            
-            # Check if image is valid
-            try:
-                torchvision.io.read_image(str(full_path), mode=torchvision.io.ImageReadMode.RGB)
-                file_paths.append(str(full_path))
-                path_labels.append(image_folder)
-            except Exception as e:
-                print(f"Skipping corrupted image: {full_path}")
-                continue
+        if not only_load_classes:
+            for image_file in os.listdir(folder_path):
+                full_path = folder_path / image_file
+                
+                # Check if image is valid
+                try:
+                    torchvision.io.read_image(str(full_path), mode=torchvision.io.ImageReadMode.RGB)
+                    file_paths.append(str(full_path))
+                    path_labels.append(image_folder)
+                except Exception as e:
+                    print(f"Skipping corrupted image: {full_path}")
+                    continue
     
     print(f"Loaded {len(file_paths)} images from {len(classes)} classes")
     return file_paths, path_labels, classes
@@ -335,6 +336,21 @@ def test_saved_model():
 
 
 if __name__ == "__main__":
-    # Uncomment the function you want to run:
-    main()  # For training
-    # test_saved_model()  # For testing saved model
+    # main()
+    # test_saved_model()
+    # predict on a single image
+    model, transforms = create_model()
+    model = load_trained_model()
+    file_paths, path_labels, classes = load_data(only_load_classes=True)
+    result = predict_single_image(model, "example_shroom.jpg", transforms, classes) # edible mushroom sporocarp ce (254)
+    print(f"Predicted: {result['predicted_class']} (confidence: {result['confidence']:.3f})")
+    print(f"All Possiblities: {result['all_probabilities']}")
+
+
+"""
+Output:
+Model loaded from mushroom_master.pt
+Loaded 0 images from 4 classes
+Predicted: edible mushroom sporocarp (confidence: 0.490)
+All Possiblities: {'edible sporocarp': 0.05334497615695, 'poisonous mushroom sporocarp': 0.03803054615855217, 'poisonous sporocarp': 0.41831693053245544, 'edible mushroom sporocarp': 0.49030759930610657}
+"""
