@@ -337,14 +337,14 @@ def test_saved_model():
 
 if __name__ == "__main__":
     # main()
-    # test_saved_model()
+    test_saved_model()
     # predict on a single image
-    model, transforms = create_model()
-    model = load_trained_model()
-    file_paths, path_labels, classes = load_data(only_load_classes=True)
-    result = predict_single_image(model, "example_shroom.jpg", transforms, classes) # edible mushroom sporocarp ce (254)
-    print(f"Predicted: {result['predicted_class']} (confidence: {result['confidence']:.3f})")
-    print(f"All Possiblities: {result['all_probabilities']}")
+    # model, transforms = create_model()
+    # model = load_trained_model()
+    # file_paths, path_labels, classes = load_data(only_load_classes=True)
+    # result = predict_single_image(model, "example_shroom.jpg", transforms, classes) # edible mushroom sporocarp ce (254)
+    # print(f"Predicted: {result['predicted_class']} (confidence: {result['confidence']:.3f})")
+    # print(f"All Possiblities: {result['all_probabilities']}")
 
 
 """
