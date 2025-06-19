@@ -342,7 +342,7 @@ if __name__ == "__main__":
     # model, transforms = create_model()
     # model = load_trained_model()
     # file_paths, path_labels, classes = load_data(only_load_classes=True)
-    # result = predict_single_image(model, "example_shroom.jpg", transforms, classes) # edible mushroom sporocarp ce (254)
+    # result = predict_single_image(model, "example_shroom_a.jpg", transforms, classes) # edible mushroom sporocarp ce (254) (276)
     # print(f"Predicted: {result['predicted_class']} (confidence: {result['confidence']:.3f})")
     # print(f"All Possiblities: {result['all_probabilities']}")
 
