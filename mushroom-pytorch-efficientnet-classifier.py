@@ -16,7 +16,7 @@ from torchmetrics import Accuracy
 NUM_CLASSES = 4
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 DATA_PATH = Path("./edible_or_not_mushrooms")
-MODEL_SAVE_PATH = "mushroom_master.pt"
+MODEL_SAVE_PATH = "mushroom_master2.pt"
 ACCURACY_SAVE_PATH = "accuracy.txt"
 BATCH_SIZE = 32
 LEARNING_RATE = 0.001
@@ -78,7 +78,7 @@ def load_data(only_load_classes: bool = False) -> Tuple[List[str], List[str], Li
     path_labels = []
     classes = []
     
-    for image_folder in os.listdir(DATA_PATH):
+    for image_folder in sorted(os.listdir(DATA_PATH)):
         folder_path = DATA_PATH / image_folder
         if not folder_path.is_dir():
             continue
@@ -337,14 +337,14 @@ def test_saved_model():
 
 if __name__ == "__main__":
     # main()
-    test_saved_model()
+    # test_saved_model()
     # predict on a single image
-    # model, transforms = create_model()
-    # model = load_trained_model()
-    # file_paths, path_labels, classes = load_data(only_load_classes=True)
-    # result = predict_single_image(model, "example_shroom_a.jpg", transforms, classes) # edible mushroom sporocarp ce (254) (276)
-    # print(f"Predicted: {result['predicted_class']} (confidence: {result['confidence']:.3f})")
-    # print(f"All Possiblities: {result['all_probabilities']}")
+    model, transforms = create_model()
+    model = load_trained_model()
+    file_paths, path_labels, classes = load_data(only_load_classes=True)
+    result = predict_single_image(model, "example_shroom_f.jpg", transforms, classes) # edible mushroom sporocarp ce (254) (276)
+    print(f"Predicted: {result['predicted_class']} (confidence: {result['confidence']:.3f})")
+    print(f"All Possiblities: {result['all_probabilities']}")
 
 
 """

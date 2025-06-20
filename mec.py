@@ -75,7 +75,7 @@ def load_data(only_load_classes: bool = False) -> Tuple[List[str], List[str], Li
     path_labels = []
     classes = []
     
-    for image_folder in os.listdir(DATA_PATH):
+    for image_folder in sorted(os.listdir(DATA_PATH)):
         folder_path = DATA_PATH / image_folder
         if not folder_path.is_dir():
             continue
