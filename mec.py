@@ -208,9 +208,9 @@ if __name__ == "__main__":
     main()
 
 """
-(.venv) /home/roka/Documents/App/mushroom/.venv/bin/python /home/roka/Documents/App/mushroom/mec.py -m mushroom_master.pt -i example_shroom_c.jpg
-poisonous sporocarp: 55.58%
-edible sporocarp: 29.92%
-edible mushroom sporocarp: 9.50%
-poisonous mushroom sporocarp: 5.00%
+(.venv) /home/roka/Documents/App/mushroom/.venv/bin/python /home/roka/Documents/App/mushroom/mec.py -m mushroom_master2.pt -i example_shroom_f.jpg
+poisonous sporocarp: 77.89%
+edible sporocarp: 13.49%
+edible mushroom sporocarp: 4.32%
+poisonous mushroom sporocarp: 4.30%
 """
