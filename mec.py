@@ -13,7 +13,6 @@ import sys
 
 
 # Configuration
-NUM_CLASSES = 2
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 DATA_PATH = Path("./cat_dog")
 BATCH_SIZE = 32
@@ -50,7 +49,7 @@ class MushroomDataset(torch.utils.data.Dataset):
         return image, label
 
 
-def create_model() -> nn.Module:
+def create_model(num_out_feature: int) -> nn.Module:
     """Create and configure the EfficientNet model."""
     # Load pretrained model
     efficient_net_weights = torchvision.models.EfficientNet_V2_S_Weights.DEFAULT
@@ -61,7 +60,7 @@ def create_model() -> nn.Module:
         param.requires_grad = False
     
     # Replace classifier head
-    model.classifier[1] = nn.Linear(in_features=1280, out_features=NUM_CLASSES, bias=True)
+    model.classifier[1] = nn.Linear(in_features=1280, out_features=num_out_feature, bias=True)
     
     return model.to(DEVICE), efficient_net_weights.transforms()
 
@@ -129,9 +128,9 @@ def create_dataloaders(file_paths: List[str], path_labels: List[str],
     return train_dataloader, test_dataloader
 
 
-def load_trained_model(model_path: str) -> nn.Module:
+def load_trained_model(model_path: str, num_of_classes: int) -> nn.Module:
     """Load a trained model from saved state dict."""
-    model, _ = create_model()
+    model, _ = create_model(num_of_classes)
     
     # Load state dict
     state_dict = torch.load(model_path, map_location=DEVICE)
@@ -181,12 +180,14 @@ def main():
         sys.exit(1)
     
     try:
+
+        _, _, classes = load_data(only_load_classes=True)
         # Load model and transforms
-        model, transforms = create_model()
-        model = load_trained_model(args.model)
+        model, transforms = create_model(len(classes))
+        model = load_trained_model(args.model, len(classes))
         
         # Load classes (need to get class names from data directory)
-        _, _, classes = load_data(only_load_classes=True)
+
         
         # Predict
         result = predict_single_image(model, args.image, transforms, classes)
@@ -207,9 +208,7 @@ if __name__ == "__main__":
     main()
 
 """
-(.venv) /home/roka/Documents/App/mushroom/.venv/bin/python /home/roka/Documents/App/mushroom/mec.py -m mushroom_master2.pt -i example_shroom_f.jpg
-poisonous sporocarp: 77.89%
-edible sporocarp: 13.49%
-edible mushroom sporocarp: 4.32%
-poisonous mushroom sporocarp: 4.30%
+(.venv)  /home/roka/Documents/App/mushroom/.venv/bin/python /home/roka/Documents/App/mushroom/mec.py -m cat_dog_model.pt -i example_fox_a.jpg
+cats: 54.54%
+dogs: 45.46%
 """
