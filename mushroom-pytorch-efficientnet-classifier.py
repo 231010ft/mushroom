@@ -13,11 +13,11 @@ from torchmetrics import Accuracy
 
 
 # Configuration
-NUM_CLASSES = 4
+NUM_CLASSES = 2
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
-DATA_PATH = Path("./edible_or_not_mushrooms")
-MODEL_SAVE_PATH = "mushroom_master3.pt"
-ACCURACY_SAVE_PATH = "accuracy.txt"
+DATA_PATH = Path("./cat_dog")
+MODEL_SAVE_PATH = "cat_dog_model.pt"
+ACCURACY_SAVE_PATH = "accuracy_catdog.txt"
 BATCH_SIZE = 32
 LEARNING_RATE = 0.001
 EPOCHS = 20
@@ -342,7 +342,7 @@ if __name__ == "__main__":
     # model, transforms = create_model()
     # model = load_trained_model()
     # file_paths, path_labels, classes = load_data(only_load_classes=True)
-    # result = predict_single_image(model, "example_shroom_f.jpg", transforms, classes) # edible mushroom sporocarp ce (254) (276)
+    # result = predict_single_image(model, "example_shroom_a.jpg", transforms, classes) # edible mushroom sporocarp ce (254) (276)
     # print(f"Predicted: {result['predicted_class']} (confidence: {result['confidence']:.3f})")
     # print(f"All Possiblities: {result['all_probabilities']}")
 

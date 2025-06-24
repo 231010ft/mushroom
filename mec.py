@@ -13,10 +13,9 @@ import sys
 
 
 # Configuration
-NUM_CLASSES = 4
+NUM_CLASSES = 2
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
-DATA_PATH = Path("./edible_or_not_mushrooms")
-MODEL_SAVE_PATH = "mushroom_master.pt"
+DATA_PATH = Path("./cat_dog")
 BATCH_SIZE = 32
 TEST_SIZE = 0.2
 RANDOM_STATE = 42
@@ -130,7 +129,7 @@ def create_dataloaders(file_paths: List[str], path_labels: List[str],
     return train_dataloader, test_dataloader
 
 
-def load_trained_model(model_path: str = MODEL_SAVE_PATH) -> nn.Module:
+def load_trained_model(model_path: str) -> nn.Module:
     """Load a trained model from saved state dict."""
     model, _ = create_model()
     
@@ -165,7 +164,7 @@ def predict_single_image(model: nn.Module, image_path: str, transforms, classes:
 
 def main():
     """Main function to handle command line arguments and run prediction."""
-    parser = argparse.ArgumentParser(description='Mushroom Classification Tool')
+    parser = argparse.ArgumentParser(description='Image Classification Tool')
     parser.add_argument('-m', '--model', required=True, help='Path to the trained model file')
     parser.add_argument('-i', '--image', required=True, help='Path to the image to classify')
     
