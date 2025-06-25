@@ -194,3 +194,4 @@ cython_debug/
 .cursorindexingignore
 edible_or_not_mushrooms/
 type_mushrooms/
+cat_dog/

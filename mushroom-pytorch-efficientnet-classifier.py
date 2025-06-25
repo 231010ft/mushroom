@@ -16,11 +16,11 @@ from torchmetrics import Accuracy
 NUM_CLASSES = 4
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 DATA_PATH = Path("./edible_or_not_mushrooms")
-MODEL_SAVE_PATH = "mushroom_master2.pt"
+MODEL_SAVE_PATH = "mushroom_master4.pt"
 ACCURACY_SAVE_PATH = "accuracy.txt"
 BATCH_SIZE = 32
 LEARNING_RATE = 0.001
-EPOCHS = 20
+EPOCHS = 40
 TEST_SIZE = 0.2
 RANDOM_STATE = 42
 
@@ -56,18 +56,25 @@ class MushroomDataset(torch.utils.data.Dataset):
 
 def create_model() -> nn.Module:
     """Create and configure the EfficientNet model."""
-    # Load pretrained model
     efficient_net_weights = torchvision.models.EfficientNet_V2_S_Weights.DEFAULT
     model = torchvision.models.efficientnet_v2_s(weights=efficient_net_weights)
     
-    # Freeze feature extraction layers
     for param in model.features.parameters():
         param.requires_grad = False
     
-    # Replace classifier head
     model.classifier[1] = nn.Linear(in_features=1280, out_features=NUM_CLASSES, bias=True)
     
-    return model.to(DEVICE), efficient_net_weights.transforms()
+    # 既存のtransformsにデータ拡張を追加
+    # efficient_net_weights.transforms()は検証用として使い、学習用にはより強力な拡張を定義
+    train_transforms = torchvision.transforms.Compose([
+        torchvision.transforms.TrivialAugmentWide(num_magnitude_bins=31), # 最新のデータ拡張手法
+        efficient_net_weights.transforms(),
+    ])
+    
+    # 検証用には既存のtransformsを使用
+    val_transforms = efficient_net_weights.transforms()
+    
+    return model.to(DEVICE), train_transforms, val_transforms # train_transformsとval_transformsを返す
 
 
 def load_data(only_load_classes: bool = False) -> Tuple[List[str], List[str], List[str]]:
@@ -103,23 +110,21 @@ def load_data(only_load_classes: bool = False) -> Tuple[List[str], List[str], Li
 
 
 def create_dataloaders(file_paths: List[str], path_labels: List[str], 
-                      classes: List[str], transforms) -> Tuple[torch.utils.data.DataLoader, torch.utils.data.DataLoader]:
+                       classes: List[str], train_transforms, val_transforms) -> Tuple[torch.utils.data.DataLoader, torch.utils.data.DataLoader]: # 引数を変更
     """Create train and test dataloaders."""
-    # Split data
     X_train_paths, X_test_paths, y_train, y_test = train_test_split(
         file_paths, path_labels, test_size=TEST_SIZE, random_state=RANDOM_STATE
     )
     
-    # Create datasets
-    train_dataset = MushroomDataset(X_train_paths, y_train, transforms, classes)
-    test_dataset = MushroomDataset(X_test_paths, y_test, transforms, classes)
+    # 学習データにはtrain_transformsを、テストデータにはval_transformsを適用
+    train_dataset = MushroomDataset(X_train_paths, y_train, train_transforms, classes)
+    test_dataset = MushroomDataset(X_test_paths, y_test, val_transforms, classes) # ここでval_transformsを使用
     
-    # Create dataloaders
     train_dataloader = torch.utils.data.DataLoader(
         dataset=train_dataset,
         batch_size=BATCH_SIZE,
         shuffle=True,
-        num_workers=min(os.cpu_count(), 4)  # Limit num_workers to prevent issues
+        num_workers=min(os.cpu_count(), 4)
     )
     
     test_dataloader = torch.utils.data.DataLoader(
@@ -270,13 +275,46 @@ def test_model(model: nn.Module, test_dataloader: torch.utils.data.DataLoader,
     }
 
 
+def main():
+    """Main training function."""
+    print(f"Using device: {DEVICE}")
+    
+    file_paths, path_labels, classes = load_data()
+    
+    model, train_transforms, val_transforms = create_model() # 戻り値を変更
+    train_dataloader, test_dataloader = create_dataloaders(file_paths, path_labels, classes, train_transforms, val_transforms) # 引数を変更
+    
+    print("\nModel Summary:")
+    print(summary(model, input_size=(BATCH_SIZE, 3, 224, 224)))
+    
+    best_accuracy = train_model(model, train_dataloader, test_dataloader)
+    print(f"\nTraining completed! Best test accuracy: {best_accuracy:.3f}")
+
+def test_saved_model():
+    """Test a saved model."""
+    print(f"Testing saved model from {MODEL_SAVE_PATH}")
+    
+    file_paths, path_labels, classes = load_data()
+    _, _, transforms = create_model() # 予測時にはval_transformsを使用
+    _, test_dataloader = create_dataloaders(file_paths, path_labels, classes, transforms, transforms) # ここもtransforms, transformsにしないとエラーが出ます。あるいは、テスト用にval_transformsを渡す。
+    
+    model = load_trained_model()
+    results = test_model(model, test_dataloader, classes)
+    
+    print(f"\nTest Results:")
+    print(f"Overall Accuracy: {results['overall_accuracy']:.3f}")
+    print("\nPer-class Accuracies:")
+    for class_name, accuracy in results['class_accuracies'].items():
+        print(f"  {class_name}: {accuracy:.3f}")
+    
+    return results
+
 def predict_single_image(model: nn.Module, image_path: str, transforms, classes: List[str]) -> dict:
     """Predict the class of a single image."""
     model.eval()
     
-    # Load and preprocess image
     image = torchvision.io.read_image(image_path, mode=torchvision.io.ImageReadMode.RGB)
-    image = transforms(image).unsqueeze(0).to(DEVICE)  # Add batch dimension
+    image = transforms(image).unsqueeze(0).to(DEVICE) # transformsはval_transformsを想定
     
     with torch.inference_mode():
         logits = model(image)
@@ -291,60 +329,16 @@ def predict_single_image(model: nn.Module, image_path: str, transforms, classes:
     }
 
 
-def main():
-    """Main training function."""
-    print(f"Using device: {DEVICE}")
-    
-    # Load data
-    file_paths, path_labels, classes = load_data()
-    
-    # Create model and dataloaders
-    model, transforms = create_model()
-    train_dataloader, test_dataloader = create_dataloaders(file_paths, path_labels, classes, transforms)
-    
-    # Print model summary
-    print("\nModel Summary:")
-    print(summary(model, input_size=(BATCH_SIZE, 3, 224, 224)))
-    
-    # Train model
-    best_accuracy = train_model(model, train_dataloader, test_dataloader)
-    print(f"\nTraining completed! Best test accuracy: {best_accuracy:.3f}")
-
-
-def test_saved_model():
-    """Test a saved model."""
-    print(f"Testing saved model from {MODEL_SAVE_PATH}")
-    
-    # Load data and create test dataloader
-    file_paths, path_labels, classes = load_data()
-    _, transforms = create_model()
-    _, test_dataloader = create_dataloaders(file_paths, path_labels, classes, transforms)
-    
-    # Load trained model
-    model = load_trained_model()
-    
-    # Test model
-    results = test_model(model, test_dataloader, classes)
-    
-    print(f"\nTest Results:")
-    print(f"Overall Accuracy: {results['overall_accuracy']:.3f}")
-    print("\nPer-class Accuracies:")
-    for class_name, accuracy in results['class_accuracies'].items():
-        print(f"  {class_name}: {accuracy:.3f}")
-    
-    return results
-
-
 if __name__ == "__main__":
-    # main()
+    main()
     # test_saved_model()
     # predict on a single image
-    model, transforms = create_model()
-    model = load_trained_model()
-    file_paths, path_labels, classes = load_data(only_load_classes=True)
-    result = predict_single_image(model, "example_shroom_f.jpg", transforms, classes) # edible mushroom sporocarp ce (254) (276)
-    print(f"Predicted: {result['predicted_class']} (confidence: {result['confidence']:.3f})")
-    print(f"All Possiblities: {result['all_probabilities']}")
+    # model, transforms = create_model()
+    # model = load_trained_model()
+    # file_paths, path_labels, classes = load_data(only_load_classes=True)
+    # result = predict_single_image(model, "example_shroom_f.jpg", transforms, classes) # edible mushroom sporocarp ce (254) (276)
+    # print(f"Predicted: {result['predicted_class']} (confidence: {result['confidence']:.3f})")
+    # print(f"All Possiblities: {result['all_probabilities']}")
 
 
 """
