@@ -13,9 +13,9 @@ import sys
 
 
 # Configuration
-NUM_CLASSES = 2
+NUM_CLASSES = 4
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
-DATA_PATH = Path("./cat_dog")
+DATA_PATH = Path("./edible_or_not_mushrooms")
 BATCH_SIZE = 32
 TEST_SIZE = 0.2
 RANDOM_STATE = 42
