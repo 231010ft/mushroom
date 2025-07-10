@@ -20,7 +20,7 @@ MODEL_SAVE_PATH = "mushroom_master_a.pt"
 ACCURACY_SAVE_PATH = "accuracy.txt"
 BATCH_SIZE = 32
 LEARNING_RATE = 0.001
-EPOCHS = 40
+EPOCHS = 60
 TEST_SIZE = 0.2
 RANDOM_STATE = 42
 
@@ -59,22 +59,24 @@ def create_model() -> nn.Module:
     efficient_net_weights = torchvision.models.EfficientNet_V2_S_Weights.DEFAULT
     model = torchvision.models.efficientnet_v2_s(weights=efficient_net_weights)
     
-    for param in model.features.parameters():
-        param.requires_grad = False
-    
+    # 最後の2ブロック以外を凍結
+    for name, param in model.features.named_parameters():
+        # ブロック6と7のパラメータは学習対象にする
+        if not (name.startswith("6") or name.startswith("7")):
+            param.requires_grad = False
+            
+    # 分類層は新しく作成
     model.classifier[1] = nn.Linear(in_features=1280, out_features=NUM_CLASSES, bias=True)
     
-    # 既存のtransformsにデータ拡張を追加
-    # efficient_net_weights.transforms()は検証用として使い、学習用にはより強力な拡張を定義
+    # データ拡張
     train_transforms = torchvision.transforms.Compose([
-        torchvision.transforms.TrivialAugmentWide(num_magnitude_bins=31), # 最新のデータ拡張手法
+        torchvision.transforms.TrivialAugmentWide(num_magnitude_bins=31),
         efficient_net_weights.transforms(),
     ])
     
-    # 検証用には既存のtransformsを使用
     val_transforms = efficient_net_weights.transforms()
     
-    return model.to(DEVICE), train_transforms, val_transforms # train_transformsとval_transformsを返す
+    return model.to(DEVICE), train_transforms, val_transforms
 
 
 def load_data(only_load_classes: bool = False) -> Tuple[List[str], List[str], List[str]]:
@@ -148,7 +150,9 @@ def train_model(model: nn.Module, train_dataloader: torch.utils.data.DataLoader,
     """Train the model and return the best test accuracy."""
     # Setup training components
     loss_fn = nn.CrossEntropyLoss()
-    optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
+    optimizer = torch.optim.AdamW(model.parameters(), lr=LEARNING_RATE)
+
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=EPOCHS, eta_min=1e-6)
     
     # Set random seeds for reproducibility
     torch.manual_seed(RANDOM_STATE)
@@ -178,6 +182,7 @@ def train_model(model: nn.Module, train_dataloader: torch.utils.data.DataLoader,
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
+            scheduler.step()
         
         # Average training metrics
         train_loss /= len(train_dataloader)
