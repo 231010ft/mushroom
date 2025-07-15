@@ -13,14 +13,14 @@ from torchmetrics import Accuracy
 
 
 # Configuration
-NUM_CLASSES = 176
+NUM_CLASSES = 2
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
-DATA_PATH = Path("./merged_dataset")  # Adjust this path to your dataset location
-MODEL_SAVE_PATH = "mushroom_master_a.pt"
+DATA_PATH = Path("./edible_or_not_mushrooms")  # Adjust this path to your dataset location
+MODEL_SAVE_PATH = "edible_or_not_mushrooms.pt"
 ACCURACY_SAVE_PATH = "accuracy.txt"
 BATCH_SIZE = 32
 LEARNING_RATE = 0.001
-EPOCHS = 60
+EPOCHS = 40
 TEST_SIZE = 0.2
 RANDOM_STATE = 42
 
